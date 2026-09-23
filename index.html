@@ -378,7 +378,7 @@ async function cloudPull() {
     const data = await resp.json();
     cloudSha = data.sha;
     localStorage.setItem(CLOUD_KEY_SHA, cloudSha);
-    const content = atob(data.content.replace(/\n/g, ''));
+    const content = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
     return JSON.parse(content);
   } catch(e) { return null; }
 }
