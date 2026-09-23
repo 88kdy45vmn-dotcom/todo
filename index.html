@@ -2,344 +2,258 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#667eea">
+<meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>待办事项</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --primary:#667eea;--primary-dark:#5a67d8;--primary-light:#eef0ff;
-  --success:#48bb78;--success-light:#f0fff4;
-  --danger:#fc8181;--danger-dark:#e53e3e;--danger-light:#fff5f5;
-  --warning:#ed8936;--warning-light:#fffaf0;
-  --bg:#f7f8fc;--card:#fff;--text:#2d3748;--text-light:#a0aec0;--border:#e2e8f0;
-  --radius:14px;--shadow:0 2px 12px rgba(102,126,234,.08);
-  --shadow-hover:0 4px 20px rgba(102,126,234,.15);
-}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
-.container{max-width:640px;margin:0 auto;padding:20px 16px 100px}
+:root{--pri:#667eea;--pri-d:#5a67d8;--pri-l:#eef0ff;--ok:#48bb78;--ok-l:#f0fff4;--err:#fc8181;--err-d:#e53e3e;--warn:#ed8936;--warn-l:#fffaf0;--bg:#f5f6fa;--card:#fff;--txt:#2d3748;--txt2:#a0aec0;--bd:#e2e8f0;--r:12px;--sh:0 1px 8px rgba(102,126,234,.07)}
+html{font-size:16px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
 
 /* 头部 */
-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);margin:-20px -16px 0;padding:28px 20px 22px;border-radius:0 0 24px 24px;color:#fff;position:relative;overflow:hidden}
-header::before{content:'';position:absolute;top:-50%;right:-30%;width:200px;height:200px;background:rgba(255,255,255,.08);border-radius:50%}
-header::after{content:'';position:absolute;bottom:-40%;left:-20%;width:160px;height:160px;background:rgba(255,255,255,.06);border-radius:50%}
-header h1{font-size:24px;font-weight:700;position:relative;z-index:1}
-header .date-line{font-size:13px;opacity:.85;margin-top:4px;position:relative;z-index:1}
-#syncStatus{font-size:11px;margin-top:6px;padding:3px 10px;border-radius:20px;display:inline-block;position:relative;z-index:1;background:rgba(255,255,255,.15);backdrop-filter:blur(4px)}
+.hdr{background:linear-gradient(135deg,#667eea,#764ba2);padding:20px 16px 16px;color:#fff;position:relative}
+.hdr h1{font-size:20px;font-weight:700}
+.hdr .sub{font-size:12px;opacity:.8;margin-top:2px}
+#syncStatus{font-size:10px;margin-top:4px;padding:2px 8px;border-radius:10px;display:inline-block;background:rgba(255,255,255,.15)}
 
-/* 统计 */
-.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}
-.stat-card{background:var(--card);border-radius:12px;padding:12px 6px;text-align:center;box-shadow:var(--shadow);transition:transform .2s}
-.stat-card:active{transform:scale(.97)}
-.stat-card .num{font-size:24px;font-weight:800}
-.stat-card .label{font-size:10px;color:var(--text-light);margin-top:2px;font-weight:500}
-.stat-card.pending .num{color:#e53e3e}
-.stat-card.done .num{color:#48bb78}
-.stat-card.overdue .num{color:#ed8936}
-.stat-card.rate .num{color:var(--primary)}
-
-/* 进度条 */
-.progress-bar{height:6px;background:var(--border);border-radius:3px;margin-bottom:16px;overflow:hidden}
-.progress-bar .fill{height:100%;background:linear-gradient(90deg,#48bb78,#667eea);border-radius:3px;transition:width .5s ease}
+/* 统计+进度 */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:12px 12px 0}
+.st{background:var(--card);border-radius:10px;padding:10px 4px;text-align:center;box-shadow:var(--sh)}
+.st .n{font-size:20px;font-weight:800}
+.st .l{font-size:9px;color:var(--txt2);margin-top:1px}
+.st.p .n{color:#e53e3e}.st.d .n{color:#48bb78}.st.o .n{color:#ed8936}.st.r .n{color:var(--pri)}
+.pbar{height:4px;background:var(--bd);margin:8px 12px 0;border-radius:2px;overflow:hidden}
+.pbar .f{height:100%;background:linear-gradient(90deg,#48bb78,#667eea);border-radius:2px;transition:width .4s}
 
 /* 添加表单 */
-.add-form{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
-.form-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center}
-.form-row:last-child{margin-bottom:0}
-.add-form input[type="text"],.add-form input[type="datetime-local"],.add-form select{
-  padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;transition:all .2s;background:#fafbff;min-height:42px
-}
-.add-form input:focus,.add-form select:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px rgba(102,126,234,.1)}
-.add-form .text-input{flex:1;min-width:0}
-.add-form select{min-width:0}
-.add-form .datetime-input{flex:1;min-width:0}
-.add-form .tags-input{width:100%;flex:1;min-width:0}
-.add-form .row-label{font-size:12px;color:var(--text-light);white-space:nowrap;display:flex;align-items:center;gap:4px}
+.add{background:var(--card);border-radius:var(--r);padding:12px;margin:10px 12px;box-shadow:var(--sh)}
+.add .r{display:flex;gap:6px;margin-bottom:6px;align-items:center;flex-wrap:wrap}
+.add .r:last-child{margin-bottom:0}
+.add input,.add select{padding:8px 10px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;outline:none;background:#fafbff;min-height:38px;transition:border .2s}
+.add input:focus,.add select:focus{border-color:var(--pri);box-shadow:0 0 0 2px rgba(102,126,234,.1)}
+.add .ti{flex:1;min-width:0;width:100%}
+.add .dt{flex:1;min-width:0}
+.add .tg{flex:1;min-width:0}
+.add .lb{font-size:11px;color:var(--txt2);white-space:nowrap}
 
 /* 工具栏 */
-.toolbar{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
-.toolbar input,.toolbar select{padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;outline:none;background:var(--card);transition:border .2s}
-.toolbar input:focus,.toolbar select:focus{border-color:var(--primary)}
-.search-input{flex:1;min-width:120px}
+.tb{display:flex;gap:5px;padding:8px 12px;flex-wrap:wrap;align-items:center}
+.tb input,.tb select{padding:6px 8px;border:1.5px solid var(--bd);border-radius:8px;font-size:12px;outline:none;background:var(--card)}
+.tb input:focus,.tb select:focus{border-color:var(--pri)}
+.tb .si{flex:1;min-width:80px}
 
 /* 按钮 */
-.btn{padding:8px 16px;border:none;border-radius:10px;font-size:13px;cursor:pointer;transition:all .15s;font-weight:600;-webkit-user-select:none;user-select:none;white-space:nowrap}
-.btn:active{transform:scale(.95)}
-.btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;box-shadow:0 2px 8px rgba(102,126,234,.3)}
-.btn-primary:hover{box-shadow:0 4px 12px rgba(102,126,234,.4)}
-.btn-danger{background:var(--danger);color:#fff}
-.btn-danger:hover{background:var(--danger-dark)}
-.btn-ghost{background:transparent;color:var(--primary);border:1.5px solid var(--primary)}
-.btn-ghost:hover{background:var(--primary);color:#fff}
-.btn-sm{padding:5px 10px;font-size:11px;border-radius:8px}
+.b{padding:7px 14px;border:none;border-radius:8px;font-size:12px;cursor:pointer;transition:all .12s;font-weight:600;white-space:nowrap;-webkit-user-select:none;user-select:none}
+.b:active{transform:scale(.95)}
+.bp{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;box-shadow:0 2px 6px rgba(102,126,234,.25)}
+.bd{background:var(--err);color:#fff}
+.bg{background:transparent;color:var(--pri);border:1.5px solid var(--pri)}
+.bs{padding:4px 8px;font-size:11px;border-radius:6px}
 
 /* 待办列表 */
-.todo-list{display:flex;flex-direction:column;gap:8px}
-.todo-item{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;align-items:flex-start;gap:10px;transition:all .2s;border-left:4px solid transparent}
-.todo-item:hover{box-shadow:var(--shadow-hover)}
-.todo-item.priority-high{border-left-color:#e53e3e}
-.todo-item.priority-medium{border-left-color:var(--warning)}
-.todo-item.priority-low{border-left-color:#48bb78}
-.todo-item.done{opacity:.55}
-.todo-item.done .todo-text{text-decoration:line-through;color:var(--text-light)}
+.tl{padding:0 12px 80px;display:flex;flex-direction:column;gap:6px}
+.ti{background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);display:flex;align-items:flex-start;gap:8px;border-left:3px solid transparent;transition:all .15s}
+.ti:active{background:#fafbff}
+.ti.h{border-left-color:#e53e3e}.ti.m{border-left-color:#ed8936}.ti.l{border-left-color:#48bb78}
+.ti.done{opacity:.5}.ti.done .tt{text-decoration:line-through;color:var(--txt2)}
 
-.checkbox{width:22px;height:22px;border-radius:7px;border:2px solid #cbd5e0;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;margin-top:2px}
-.checkbox:active{transform:scale(.85)}
-.checkbox.checked{background:var(--success);border-color:var(--success)}
-.checkbox.checked::after{content:"✓";color:#fff;font-size:12px;font-weight:800}
+.ck{width:20px;height:20px;border-radius:6px;border:2px solid #cbd5e0;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;margin-top:1px}
+.ck:active{transform:scale(.85)}
+.ck.on{background:var(--ok);border-color:var(--ok)}
+.ck.on::after{content:"✓";color:#fff;font-size:11px;font-weight:800}
 
-.todo-body{flex:1;min-width:0}
-.todo-text{font-size:15px;word-break:break-word;line-height:1.5;font-weight:500}
-.todo-meta{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;align-items:center}
-.badge{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:600;white-space:nowrap;letter-spacing:.3px}
-.badge-high{background:#fff5f5;color:#e53e3e}
-.badge-medium{background:var(--warning-light);color:#c05621}
-.badge-low{background:var(--success-light);color:#276749}
-.badge-due{background:var(--primary-light);color:var(--primary)}
-.badge-overdue{background:#e53e3e;color:#fff;animation:pulse 2s infinite}
-.badge-reminder{background:#fffbeb;color:#b7791f}
-.badge-tag{background:#ebf8ff;color:#3182ce}
-.todo-time{font-size:10px;color:var(--text-light)}
+.tb2{flex:1;min-width:0}
+.tt{font-size:14px;word-break:break-word;line-height:1.4;font-weight:500}
+.tm{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;align-items:center}
+.bd2{font-size:9px;padding:1px 6px;border-radius:4px;font-weight:600;white-space:nowrap}
+.bd2.h{background:#fff5f5;color:#e53e3e}.bd2.m{background:var(--warn-l);color:#c05621}.bd2.l{background:var(--ok-l);color:#276749}
+.bd2.du{background:var(--pri-l);color:var(--pri)}.bd2.ov{background:#e53e3e;color:#fff;animation:pulse 2s infinite}.bd2.rm{background:#fffbeb;color:#b7791f}.bd2.tg{background:#ebf8ff;color:#3182ce}
+.tst{font-size:9px;color:var(--txt2)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.ta{display:flex;gap:4px;flex-shrink:0}
+.empty{text-align:center;padding:36px 20px;color:var(--txt2)}
+.empty .ic{font-size:40px;margin-bottom:8px}
 
-.todo-actions{display:flex;gap:4px;flex-shrink:0}
+/* 云同步横幅 */
+.sb{background:var(--pri-l);border:1.5px dashed var(--pri);border-radius:10px;padding:10px 12px;margin:8px 12px;text-align:center;font-size:12px;color:var(--pri);cursor:pointer}
+.sb:active{transform:scale(.98)}
 
-.empty-state{text-align:center;padding:48px 20px;color:var(--text-light)}
-.empty-state .icon{font-size:52px;margin-bottom:12px;filter:grayscale(.2)}
-.empty-state .desc{font-size:14px}
+/* 数据栏 */
+.db{display:flex;gap:5px;padding:8px 12px;justify-content:center;flex-wrap:wrap}
+.db .b{font-size:10px;padding:4px 8px;background:var(--card);color:var(--txt2);border:1px solid var(--bd)}
+.db .b:active{background:var(--pri-l);color:var(--pri)}
 
-/* 编辑模态框 */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:100;padding:0;backdrop-filter:blur(2px)}
-.modal-overlay.active{display:flex}
-.modal{background:var(--card);border-radius:20px 20px 0;padding:24px 20px 32px;width:100%;max-width:480px;box-shadow:0 -4px 24px rgba(0,0,0,.12);max-height:85vh;overflow-y:auto;animation:slideUp .25s ease}
-.modal h3{margin-bottom:16px;font-size:18px;font-weight:700}
-.modal .field{margin-bottom:12px}
-.modal label{display:block;font-size:12px;color:var(--text-light);margin-bottom:4px;font-weight:600}
-.modal input,.modal select,.modal textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;background:#fafbff;min-height:42px}
-.modal input:focus,.modal select:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px rgba(102,126,234,.1)}
-.modal .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
-.modal .modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+/* 模态框 */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center;z-index:100;backdrop-filter:blur(2px)}
+.mo.on{display:flex}
+.md{background:var(--card);border-radius:16px 16px 0;padding:20px 16px 28px;width:100%;max-width:460px;max-height:85vh;overflow-y:auto;animation:su .2s ease}
+.md h3{margin-bottom:12px;font-size:16px;font-weight:700}
+.md .mh{width:36px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 14px}
+.md .f{margin-bottom:10px}
+.md label{display:block;font-size:11px;color:var(--txt2);margin-bottom:3px;font-weight:600}
+.md input,.md select,.md textarea{width:100%;padding:9px 10px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;outline:none;background:#fafbff;min-height:38px}
+.md input:focus,.md select:focus{border-color:var(--pri);box-shadow:0 0 0 2px rgba(102,126,234,.1)}
+.md .ma{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 /* toast */
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--text);color:#fff;padding:10px 24px;border-radius:24px;font-size:13px;z-index:200;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--txt);color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;z-index:200;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.2)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* 数据管理栏 */
-.data-bar{display:flex;gap:6px;margin-top:20px;justify-content:center;flex-wrap:wrap}
-.data-bar .btn{font-size:11px;padding:6px 12px;background:var(--card);color:var(--text-light);border:1.5px solid var(--border);border-radius:10px}
-.data-bar .btn:active{background:var(--primary-light);color:var(--primary);border-color:var(--primary)}
-
-/* 云同步提示横幅 */
-.sync-banner{background:var(--primary-light);border:1.5px dashed var(--primary);border-radius:12px;padding:12px 16px;margin-bottom:14px;text-align:center;font-size:13px;color:var(--primary);cursor:pointer;transition:all .2s}
-.sync-banner:active{transform:scale(.98)}
-.sync-banner strong{font-weight:700}
-
-/* 移动端适配 */
-@media(max-width:600px){
-  .container{padding:12px 10px 90px}
-  header{margin:-12px -10px 0;padding:22px 16px 18px;border-radius:0 0 20px 20px}
-  header h1{font-size:20px}
-  .stats-bar{gap:6px}
-  .stat-card{padding:10px 4px;border-radius:10px}
-  .stat-card .num{font-size:20px}
-  .stat-card .label{font-size:9px}
-  .add-form{padding:12px;border-radius:12px}
-  .form-row{gap:6px}
-  .add-form input[type="text"],.add-form input[type="datetime-local"],.add-form select{
-    width:100%;font-size:16px;border-radius:8px
-  }
-  .add-form .text-input{width:100%}
-  .add-form .datetime-input{width:100%}
-  .add-form .tags-input{width:100%}
-  .add-form select{width:100%}
-  .form-row-datetime{flex-direction:column;gap:6px}
-  .form-row-datetime .row-label{display:none}
-  .toolbar{gap:5px}
-  .toolbar input,.toolbar select{padding:7px 8px;font-size:13px;border-radius:8px}
-  .search-input{flex-basis:100%;order:-1}
-  .btn{padding:7px 12px;font-size:12px;border-radius:8px}
-  .todo-item{padding:12px;gap:8px;border-radius:12px}
-  .todo-text{font-size:14px}
-  .todo-meta{gap:4px}
-  .badge{font-size:9px;padding:1px 6px}
-  .todo-time{font-size:9px}
-  .todo-actions{flex-direction:row;width:100%;justify-content:flex-end;gap:6px;margin-top:6px}
-  .todo-actions .btn{padding:5px 10px;font-size:11px}
-  .checkbox{width:20px;height:20px}
-  .modal{padding:20px 16px 28px;border-radius:16px 16px 0;width:100%;max-height:90vh}
-  .modal h3{font-size:16px}
-  .toast{top:12px;font-size:12px;padding:8px 18px}
-  .data-bar .btn{font-size:10px;padding:5px 10px}
-  .sync-banner{font-size:12px;padding:10px 12px}
+/* 桌面端 */
+@media(min-width:601px){
+  .hdr{padding:24px 20px 18px}.hdr h1{font-size:24px}
+  .stats{padding:14px 16px 0}.st{padding:12px 6px}.st .n{font-size:24px}
+  .add{margin:12px 16px;padding:16px}
+  .add .r{gap:8px}
+  .tl{padding:0 16px 80px;gap:8px}.ti{padding:12px 14px}
+  .mo{align-items:center;padding:16px}.md{border-radius:16px;max-height:80vh}
 }
 
-/* 桌面端模态框居中 */
-@media(min-width:601px){
-  .modal-overlay{align-items:center;padding:16px}
-  .modal{border-radius:20px;max-height:80vh}
+/* 手机竖屏优化 */
+@media(max-width:600px){
+  .add .r{gap:5px}
+  .add input,.add select{font-size:16px;border-radius:8px;padding:9px 10px}
+  .add .dt{width:100%;flex-basis:100%}
+  .add .tg{width:100%;flex-basis:100%}
+  .add .lb{display:none}
+  .tb{padding:6px 10px}
+  .tb .si{flex-basis:100%;order:-1}
+  .ti{padding:10px;gap:6px}
+  .tt{font-size:14px}
+  .tm{gap:3px}
+  .ta{width:100%;justify-content:flex-end;margin-top:4px}
+  .ta .b{padding:4px 8px;font-size:11px}
 }
 </style>
 </head>
 <body>
-<div class="container">
-  <header>
-    <h1>📋 待办事项</h1>
-    <div class="date-line" id="dateDisplay"></div>
-    <div id="syncStatus"></div>
-  </header>
+<div class="hdr">
+  <h1>📋 待办事项</h1>
+  <div class="sub" id="dateDisplay"></div>
+  <div id="syncStatus"></div>
+</div>
 
-  <div id="syncBanner" class="sync-banner" onclick="showCloudSetting()" style="display:none">
-    <strong>☁️ 开启云同步</strong> — 多设备自动同步待办数据，点击设置
-  </div>
+<div id="syncBanner" class="sb" onclick="showCloudSetting()" style="display:none">
+  ☁️ 点击开启云同步 — 多设备自动同步待办数据
+</div>
 
-  <div class="stats-bar">
-    <div class="stat-card pending"><div class="num" id="statPending">0</div><div class="label">待办</div></div>
-    <div class="stat-card done"><div class="num" id="statDone">0</div><div class="label">完成</div></div>
-    <div class="stat-card overdue"><div class="num" id="statOverdue">0</div><div class="label">逾期</div></div>
-    <div class="stat-card rate"><div class="num" id="statRate">0%</div><div class="label">完成率</div></div>
-  </div>
+<div class="stats">
+  <div class="st p"><div class="n" id="statPending">0</div><div class="l">待办</div></div>
+  <div class="st d"><div class="n" id="statDone">0</div><div class="l">完成</div></div>
+  <div class="st o"><div class="n" id="statOverdue">0</div><div class="l">逾期</div></div>
+  <div class="st r"><div class="n" id="statRate">0%</div><div class="l">完成率</div></div>
+</div>
+<div class="pbar"><div class="f" id="progressFill" style="width:0%"></div></div>
 
-  <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
-
-  <div class="add-form">
-    <div class="form-row">
-      <input type="text" id="addText" class="text-input" placeholder="输入待办内容，回车添加..." autofocus>
-    </div>
-    <div class="form-row">
-      <select id="addPriority" style="flex:1;min-width:0">
-        <option value="medium">🟡 中优先级</option>
-        <option value="high">🔴 高优先级</option>
-        <option value="low">🟢 低优先级</option>
-      </select>
-      <input type="datetime-local" id="addDue" class="datetime-input" title="截止时间">
-    </div>
-    <div class="form-row">
-      <input type="datetime-local" id="addReminder" class="datetime-input" title="提醒时间">
-      <span class="row-label">⏰ 提醒</span>
-    </div>
-    <div class="form-row">
-      <input type="text" id="addTags" class="tags-input" placeholder="🏷 标签(逗号分隔)">
-    </div>
-    <div class="form-row" style="justify-content:flex-end">
-      <button class="btn btn-primary" onclick="addTodo()">➕ 添加</button>
-    </div>
-  </div>
-
-  <div class="toolbar">
-    <input type="text" id="searchInput" class="search-input" placeholder="🔍 搜索..." oninput="render()">
-    <select id="filterStatus" onchange="render()">
-      <option value="all">全部</option>
-      <option value="pending">待办</option>
-      <option value="done">已完成</option>
+<div class="add">
+  <div class="r"><input type="text" id="addText" class="ti" placeholder="输入待办，回车添加..." autofocus></div>
+  <div class="r">
+    <select id="addPriority" style="flex:1;min-width:0">
+      <option value="medium">🟡 中</option>
+      <option value="high">🔴 高</option>
+      <option value="low">🟢 低</option>
     </select>
-    <select id="sortBy" onchange="render()">
-      <option value="priority">按优先级</option>
-      <option value="due">按截止时间</option>
-      <option value="created">按创建时间</option>
-    </select>
-    <button class="btn btn-danger btn-sm" onclick="clearDone()">🗑 清除</button>
+    <input type="datetime-local" id="addDue" class="dt" title="截止时间">
   </div>
-
-  <div class="todo-list" id="todoList"></div>
-
-  <div class="data-bar">
-    <button class="btn" onclick="exportData()">📤 导出</button>
-    <button class="btn" onclick="document.getElementById('importFile').click()">📥 导入</button>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-    <button class="btn" onclick="showSyncCode()">🔄 同步码</button>
-    <button class="btn" onclick="showCloudSetting()">☁️ 云同步</button>
+  <div class="r">
+    <input type="datetime-local" id="addReminder" class="dt" title="提醒时间">
+    <span class="lb">⏰提醒</span>
+    <input type="text" id="addTags" class="tg" placeholder="🏷标签">
   </div>
+  <div class="r" style="justify-content:flex-end"><button class="b bp" onclick="addTodo()">➕ 添加</button></div>
+</div>
+
+<div class="tb">
+  <input type="text" id="searchInput" class="si" placeholder="🔍搜索" oninput="render()">
+  <select id="filterStatus" onchange="render()"><option value="all">全部</option><option value="pending">待办</option><option value="done">已完成</option></select>
+  <select id="sortBy" onchange="render()"><option value="priority">优先级</option><option value="due">截止</option><option value="created">时间</option></select>
+  <button class="b bd bs" onclick="clearDone()">🗑清除</button>
+</div>
+
+<div class="tl" id="todoList"></div>
+
+<div class="db">
+  <button class="b" onclick="exportData()">📤导出</button>
+  <button class="b" onclick="document.getElementById('importFile').click()">📥导入</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  <button class="b" onclick="showSyncCode()">🔄同步码</button>
+  <button class="b" onclick="showCloudSetting()">☁️云同步</button>
 </div>
 
 <!-- 编辑模态框 -->
-<div class="modal-overlay" id="editModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <h3>✏️ 编辑待办</h3>
-    <div class="field"><label>内容</label><input type="text" id="editText"></div>
-    <div class="field"><label>优先级</label>
-      <select id="editPriority">
-        <option value="high">🔴 高</option>
-        <option value="medium">🟡 中</option>
-        <option value="low">🟢 低</option>
-      </select>
-    </div>
-    <div class="field"><label>📅 截止时间</label><input type="datetime-local" id="editDue"></div>
-    <div class="field"><label>⏰ 提醒时间</label><input type="datetime-local" id="editReminder"></div>
-    <div class="field"><label>🏷 标签 (逗号分隔)</label><input type="text" id="editTags"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeEdit()">取消</button>
-      <button class="btn btn-primary" onclick="saveEdit()">保存</button>
-    </div>
+<div class="mo" id="editModal">
+  <div class="md">
+    <div class="mh"></div>
+    <h3>✏️ 编辑</h3>
+    <div class="f"><label>内容</label><input type="text" id="editText"></div>
+    <div class="f"><label>优先级</label><select id="editPriority"><option value="high">🔴 高</option><option value="medium">🟡 中</option><option value="low">🟢 低</option></select></div>
+    <div class="f"><label>📅 截止时间</label><input type="datetime-local" id="editDue"></div>
+    <div class="f"><label>⏰ 提醒时间</label><input type="datetime-local" id="editReminder"></div>
+    <div class="f"><label>🏷 标签</label><input type="text" id="editTags"></div>
+    <div class="ma"><button class="b bg" onclick="closeEdit()">取消</button><button class="b bp" onclick="saveEdit()">保存</button></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <!-- 同步码模态框 -->
-<div class="modal-overlay" id="syncModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
+<div class="mo" id="syncModal">
+  <div class="md">
+    <div class="mh"></div>
     <h3>🔄 跨设备同步</h3>
-    <p style="font-size:13px;color:var(--text-light);margin-bottom:12px">复制同步码到另一设备粘贴，即可同步数据</p>
-    <div class="field">
-      <label>📤 导出同步码</label>
-      <textarea id="syncExport" readonly style="width:100%;height:80px;padding:8px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-family:monospace;resize:none;background:#fafbff"></textarea>
-      <button class="btn btn-primary" style="margin-top:6px;width:100%" onclick="copySyncCode()">复制同步码</button>
-    </div>
-    <div style="text-align:center;color:var(--text-light);margin:10px 0;font-size:12px">─── 或 ───</div>
-    <div class="field">
-      <label>📥 导入同步码</label>
-      <textarea id="syncImport" placeholder="粘贴同步码..." style="width:100%;height:80px;padding:8px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-family:monospace;resize:none;background:#fafbff"></textarea>
-      <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="btn btn-primary" style="flex:1" onclick="importSyncCode('merge')">合并导入</button>
-        <button class="btn btn-danger" style="flex:1" onclick="importSyncCode('replace')">替换导入</button>
-      </div>
-      <p style="font-size:11px;color:var(--text-light);margin-top:4px">合并=保留本地+添加新 | 替换=清空本地并覆盖</p>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeSync()">关闭</button>
-    </div>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:10px">复制同步码到另一设备粘贴即可</p>
+    <div class="f"><label>📤 导出</label><textarea id="syncExport" readonly style="width:100%;height:70px;padding:6px;border:1.5px solid var(--bd);border-radius:8px;font-size:11px;font-family:monospace;resize:none;background:#fafbff"></textarea>
+    <button class="b bp" style="margin-top:4px;width:100%" onclick="copySyncCode()">复制同步码</button></div>
+    <div style="text-align:center;color:var(--txt2);margin:8px 0;font-size:11px">─── 或 ───</div>
+    <div class="f"><label>📥 导入</label><textarea id="syncImport" placeholder="粘贴同步码..." style="width:100%;height:70px;padding:6px;border:1.5px solid var(--bd);border-radius:8px;font-size:11px;font-family:monospace;resize:none;background:#fafbff"></textarea>
+    <div style="display:flex;gap:5px;margin-top:4px"><button class="b bp" style="flex:1" onclick="importSyncCode('merge')">合并</button><button class="b bd" style="flex:1" onclick="importSyncCode('replace')">替换</button></div></div>
+    <div class="ma"><button class="b bg" onclick="closeSync()">关闭</button></div>
   </div>
 </div>
 
 <!-- 云同步设置模态框 -->
-<div class="modal-overlay" id="cloudModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <h3>☁️ 云同步设置</h3>
-    <p style="font-size:13px;color:var(--text-light);margin-bottom:14px">通过 GitHub API 实现多设备自动同步，设置一次即可</p>
-    <div class="field">
-      <label>GitHub 仓库</label>
-      <input type="text" id="cloudRepo" placeholder="例如: 88kdy45vmn-dotcom/todo">
-      <p style="font-size:11px;color:var(--text-light);margin-top:4px">你的 GitHub 用户名/仓库名</p>
-    </div>
-    <div class="field">
-      <label>Personal Access Token</label>
-      <input type="password" id="cloudToken" placeholder="ghp_xxxxxxxxxxxx">
-      <p style="font-size:11px;color:var(--text-light);margin-top:4px">需要 repo 权限 · <a href="https://github.com/settings/tokens/new" target="_blank" style="color:var(--primary)">去创建 →</a></p>
-    </div>
-    <div class="field">
-      <label>分支 (默认 main)</label>
-      <input type="text" id="cloudBranch" placeholder="main" value="main">
-    </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn btn-primary" style="flex:1" onclick="saveCloudSetting()">保存并测试</button>
-      <button class="btn btn-danger" style="flex:1" onclick="clearCloudSetting()">清除</button>
-    </div>
-    <div id="cloudTestResult" style="margin-top:10px;font-size:13px;text-align:center;font-weight:500"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeCloudSetting()">关闭</button>
-    </div>
+<div class="mo" id="cloudModal">
+  <div class="md">
+    <div class="mh"></div>
+    <h3>☁️ 云同步</h3>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:12px">通过 GitHub API 自动同步，设置一次即可</p>
+    <div class="f"><label>GitHub 仓库</label><input type="text" id="cloudRepo" placeholder="用户名/仓库名"></div>
+    <div class="f"><label>Personal Access Token</label><input type="password" id="cloudToken" placeholder="ghp_xxxx"><p style="font-size:10px;color:var(--txt2);margin-top:3px">需要 repo 权限 · <a href="https://github.com/settings/tokens/new" target="_blank" style="color:var(--pri)">去创建 →</a></p></div>
+    <div class="f"><label>分支</label><input type="text" id="cloudBranch" placeholder="main" value="main"></div>
+    <div style="display:flex;gap:6px;margin-top:6px"><button class="b bp" style="flex:1" onclick="saveCloudSetting()">保存并测试</button><button class="b bd" style="flex:1" onclick="clearCloudSetting()">清除</button></div>
+    <div id="cloudTestResult" style="margin-top:8px;font-size:12px;text-align:center;font-weight:500"></div>
+    <div class="ma"><button class="b bg" onclick="closeCloudSetting()">关闭</button></div>
   </div>
 </div>
 
 <script>
+// ─── 版本号（强制刷新缓存）──────────────────────────────────
+const APP_VERSION = '2026-09-23-v3';
+
+// ─── UTF-8 安全编码/解码 ──────────────────────────────────
+function utf8ToBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function base64ToUtf8(b64) {
+  const binary = atob(b64.replace(/\n/g, ''));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
 // ─── 云同步（GitHub API）──────────────────────────────────
 const SYNC_INTERVAL = 30;
 const CLOUD_KEY_REPO = 'cloud_repo';
@@ -367,8 +281,7 @@ async function githubApi(method, body) {
   const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
   const suffix = method === 'GET' ? `?ref=${cloudBranch}` : '';
-  const resp = await fetch(url + suffix, opts);
-  return resp;
+  return await fetch(url + suffix, opts);
 }
 
 async function cloudPull() {
@@ -378,22 +291,16 @@ async function cloudPull() {
     const data = await resp.json();
     cloudSha = data.sha;
     localStorage.setItem(CLOUD_KEY_SHA, cloudSha);
-    // 用 TextDecoder 正确解码 UTF-8 字节，避免 escape/unescape 兼容性问题
-    const raw = atob(data.content.replace(/\n/g, ''));
-    const bytes = Uint8Array.from(raw, c => c.charCodeAt(0));
-    return JSON.parse(new TextDecoder().decode(bytes));
+    const jsonStr = base64ToUtf8(data.content);
+    return JSON.parse(jsonStr);
   } catch(e) { return null; }
 }
 
 async function cloudPush(todos) {
   try {
-    // 用 TextEncoder 正确编码为 UTF-8 字节，避免 unescape/encodeURIComponent 兼容性问题
-    const bytes = new TextEncoder().encode(JSON.stringify(todos));
-    const content = btoa(Array.from(bytes, b => String.fromCharCode(b)).join(''));
-    const body = {
-      message: `sync ${new Date().toISOString().slice(0,16)}`,
-      content, branch: cloudBranch,
-    };
+    const jsonStr = JSON.stringify(todos);
+    const content = utf8ToBase64(jsonStr);
+    const body = { message: `sync ${new Date().toISOString().slice(0,16)}`, content, branch: cloudBranch };
     if (cloudSha) body.sha = cloudSha;
     let resp = await githubApi('PUT', body);
     if (resp.status === 409 && cloudSha) {
@@ -418,15 +325,11 @@ function mergeTodos(local, remote) {
   const map = {};
   local.forEach(t => { map[t.id] = {...t}; });
   remote.forEach(t => {
-    if (!map[t.id]) {
-      map[t.id] = {...t};
-    } else {
+    if (!map[t.id]) { map[t.id] = {...t}; }
+    else {
       const ex = map[t.id];
-      if (t.status === 'done' && ex.status !== 'done') {
-        map[t.id] = {...t};
-      } else if (t.completed_at && !ex.completed_at) {
-        map[t.id] = {...t};
-      }
+      if (t.status === 'done' && ex.status !== 'done') map[t.id] = {...t};
+      else if (t.completed_at && !ex.completed_at) map[t.id] = {...t};
     }
   });
   return Object.values(map).sort((a,b) => a.id - b.id);
@@ -447,29 +350,19 @@ async function autoSync() {
         const ok = await cloudPush(localTodos);
         cloudOnline = ok;
         if (ok) localStorage.setItem(CLOUD_KEY_SYNCED, new Date().toISOString());
-      } else {
-        cloudOnline = false;
-      }
-      updateSyncStatus();
-      return;
+      } else { cloudOnline = false; }
+      updateSyncStatus(); return;
     }
     cloudOnline = true;
     const merged = mergeTodos(localTodos, remoteData);
     const localStr = JSON.stringify(localTodos.sort((a,b)=>a.id-b.id));
     const mergedStr = JSON.stringify(merged.sort((a,b)=>a.id-b.id));
-    if (localStr !== mergedStr) {
-      saveTodos(merged);
-      render();
-    }
+    if (localStr !== mergedStr) { saveTodos(merged); render(); }
     await cloudPush(merged);
     localStorage.setItem(CLOUD_KEY_SYNCED, new Date().toISOString());
     updateSyncStatus();
-  } catch(e) {
-    cloudOnline = false;
-    updateSyncStatus();
-  } finally {
-    syncing = false;
-  }
+  } catch(e) { cloudOnline = false; updateSyncStatus(); }
+  finally { syncing = false; }
 }
 
 function updateSyncStatus() {
@@ -482,7 +375,7 @@ function updateSyncStatus() {
     el.style.background = 'rgba(72,187,120,.2)';
     banner.style.display = 'none';
   } else if (cloudRepo && cloudToken) {
-    el.textContent = '🔴 云端离线 · 数据保存在本地';
+    el.textContent = '🔴 离线 · 数据保存在本地';
     el.style.background = 'rgba(252,129,129,.2)';
     banner.style.display = 'none';
   } else {
@@ -501,64 +394,49 @@ function showCloudSetting() {
   document.getElementById('cloudToken').value = cloudToken;
   document.getElementById('cloudBranch').value = cloudBranch;
   document.getElementById('cloudTestResult').textContent = '';
-  document.getElementById('cloudModal').classList.add('active');
+  document.getElementById('cloudModal').classList.add('on');
 }
-
-function closeCloudSetting() {
-  document.getElementById('cloudModal').classList.remove('active');
-}
+function closeCloudSetting() { document.getElementById('cloudModal').classList.remove('on'); }
 
 function saveCloudSetting() {
   const repo = document.getElementById('cloudRepo').value.trim();
   const token = document.getElementById('cloudToken').value.trim();
   const branch = document.getElementById('cloudBranch').value.trim() || 'main';
   if (!repo || !token) { showToast('❌ 请填写仓库和 Token'); return; }
-  cloudRepo = repo; cloudToken = token; cloudBranch = branch;
-  cloudSha = '';
+  cloudRepo = repo; cloudToken = token; cloudBranch = branch; cloudSha = '';
   localStorage.setItem(CLOUD_KEY_REPO, repo);
   localStorage.setItem(CLOUD_KEY_TOKEN, token);
   localStorage.setItem(CLOUD_KEY_BRANCH, branch);
   localStorage.removeItem(CLOUD_KEY_SHA);
-  document.getElementById('cloudTestResult').textContent = '⏳ 正在测试连接...';
-  document.getElementById('cloudTestResult').style.color = 'var(--primary)';
+  document.getElementById('cloudTestResult').textContent = '⏳ 测试中...';
+  document.getElementById('cloudTestResult').style.color = 'var(--pri)';
   autoSync().then(() => {
     const el = document.getElementById('cloudTestResult');
-    if (cloudOnline) {
-      el.textContent = '✅ 连接成功！自动同步已开启';
-      el.style.color = 'var(--success)';
-    } else {
-      el.textContent = '❌ 连接失败，请检查仓库和 Token';
-      el.style.color = 'var(--danger-dark)';
-    }
+    if (cloudOnline) { el.textContent = '✅ 连接成功！自动同步已开启'; el.style.color = 'var(--ok)'; }
+    else { el.textContent = '❌ 连接失败，请检查设置'; el.style.color = 'var(--err-d)'; }
   });
 }
 
 function clearCloudSetting() {
   cloudRepo = ''; cloudToken = ''; cloudBranch = 'main'; cloudSha = '';
-  localStorage.removeItem(CLOUD_KEY_REPO);
-  localStorage.removeItem(CLOUD_KEY_TOKEN);
-  localStorage.removeItem(CLOUD_KEY_BRANCH);
-  localStorage.removeItem(CLOUD_KEY_SHA);
+  localStorage.removeItem(CLOUD_KEY_REPO); localStorage.removeItem(CLOUD_KEY_TOKEN);
+  localStorage.removeItem(CLOUD_KEY_BRANCH); localStorage.removeItem(CLOUD_KEY_SHA);
   document.getElementById('cloudRepo').value = '';
   document.getElementById('cloudToken').value = '';
   document.getElementById('cloudBranch').value = 'main';
   document.getElementById('cloudTestResult').textContent = '';
-  cloudOnline = false;
-  updateSyncStatus();
-  showToast('✅ 已清除云同步设置');
+  cloudOnline = false; updateSyncStatus();
+  showToast('✅ 已清除');
 }
 
 function startAutoSync() {
   updateSyncStatus();
   if (cloudRepo && cloudToken) autoSync();
-  syncTimer = setInterval(() => {
-    if (cloudRepo && cloudToken) autoSync();
-  }, SYNC_INTERVAL * 1000);
+  syncTimer = setInterval(() => { if (cloudRepo && cloudToken) autoSync(); }, SYNC_INTERVAL * 1000);
 }
 
-// ┄── 数据层（localStorage）─────────────────────────────────
+// ─── 数据层 ──────────────────────────────────────────────
 const STORAGE_KEY = 'todo_app_data';
-const PRIORITY_MAP = {'高':'high','中':'medium','低':'low','high':'high','medium':'medium','low':'low'};
 const PRIORITY_ORDER = {high:0,medium:1,low:2};
 const PRIORITY_LABEL = {high:'🔴 高',medium:'🟡 中',low:'🟢 低'};
 
@@ -566,85 +444,59 @@ function loadTodos() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
   catch(e) { return []; }
 }
+function saveTodos(todos) { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); }
+function nextId(todos) { return todos.length ? Math.max(...todos.map(t=>t.id)) + 1 : 1; }
 
-function saveTodos(todos) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
-}
-
-function nextId(todos) {
-  return todos.length ? Math.max(...todos.map(t=>t.id)) + 1 : 1;
-}
-
-// ─── 渲染 ──────────────────────────────────────────────────
+// ─── 渲染 ────────────────────────────────────────────────
 let editingId = null;
-
-document.getElementById('dateDisplay').textContent =
-  new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
-
+document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
 document.getElementById('addText').addEventListener('keydown', e => { if(e.key==='Enter') addTodo(); });
 
+function fmtDt(dt) {
+  if (!dt) return '';
+  const p = dt.replace('T',' ').split(' ');
+  const d = p[0], t = (p[1]||'').replace(/:\d{2}$/,'');
+  const dp = d.split(/[\/\-]/);
+  if (dp.length===3) return parseInt(dp[1])+'/'+parseInt(dp[2])+' '+t;
+  return d+' '+t;
+}
+
 function render() {
-  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-  const status = document.getElementById('filterStatus').value;
-  const sort = document.getElementById('sortBy').value;
-
+  const kw = document.getElementById('searchInput').value.trim().toLowerCase();
+  const st = document.getElementById('filterStatus').value;
+  const so = document.getElementById('sortBy').value;
   let todos = loadTodos();
-  if (status !== 'all') todos = todos.filter(t => t.status === status);
-  if (keyword) todos = todos.filter(t => t.text.toLowerCase().includes(keyword));
-
-  if (sort === 'priority') todos.sort((a,b) => (PRIORITY_ORDER[a.priority]||1) - (PRIORITY_ORDER[b.priority]||1) || a.id - b.id);
-  else if (sort === 'due') todos.sort((a,b) => (a.due||'9999') < (b.due||'9999') ? -1 : 1);
-  else if (sort === 'created') todos.sort((a,b) => b.created_at > a.created_at ? 1 : -1);
+  if (st!=='all') todos = todos.filter(t=>t.status===st);
+  if (kw) todos = todos.filter(t=>t.text.toLowerCase().includes(kw));
+  if (so==='priority') todos.sort((a,b)=>(PRIORITY_ORDER[a.priority]||1)-(PRIORITY_ORDER[b.priority]||1)||a.id-b.id);
+  else if (so==='due') todos.sort((a,b)=>(a.due||'9999')<(b.due||'9999')?-1:1);
+  else if (so==='created') todos.sort((a,b)=>b.created_at>a.created_at?1:-1);
 
   const list = document.getElementById('todoList');
+  const today = new Date().toISOString().slice(0,10);
   if (!todos.length) {
-    list.innerHTML = '<div class="empty-state"><div class="icon">🎉</div><div class="desc">暂无待办事项</div></div>';
+    list.innerHTML = '<div class="empty"><div class="ic">🎉</div><div>暂无待办</div></div>';
   } else {
-    const today = new Date().toISOString().slice(0,10);
     list.innerHTML = todos.map(t => {
-      const isOverdue = t.status==='pending' && t.due && t.due.slice(0,10) < today;
-      const pc = t.priority || 'medium';
-      const dueDisplay = t.due ? formatDateTime(t.due) : '';
-      const reminderDisplay = t.reminder ? formatDateTime(t.reminder) : '';
-      return `
-      <div class="todo-item priority-${pc} ${t.status==='done'?'done':''}" data-id="${t.id}">
-        <div class="checkbox ${t.status==='done'?'checked':''}" onclick="toggleTodo(${t.id})"></div>
-        <div class="todo-body">
-          <div class="todo-text">${esc(t.text)}</div>
-          <div class="todo-meta">
-            <span class="badge badge-${pc}">${PRIORITY_LABEL[pc]||'🟡 中'}</span>
-            ${t.due?`<span class="badge ${isOverdue?'badge-overdue':'badge-due'}">📅 ${dueDisplay}${isOverdue?' ⚠️':''}</span>`:''}
-            ${t.reminder?`<span class="badge badge-reminder">⏰ ${reminderDisplay}</span>`:''}
-            ${(t.tags||[]).map(tag=>`<span class="badge badge-tag">#${esc(tag)}</span>`).join('')}
-            <span class="todo-time">${t.status==='done'&&t.completed_at?'完成于 '+t.completed_at:t.created_at}</span>
+      const ov = t.status==='pending'&&t.due&&t.due.slice(0,10)<today;
+      const pc = t.priority||'medium';
+      return `<div class="ti ${pc} ${t.status==='done'?'done':''}" data-id="${t.id}">
+        <div class="ck ${t.status==='done'?'on':''}" onclick="toggleTodo(${t.id})"></div>
+        <div class="tb2">
+          <div class="tt">${esc(t.text)}</div>
+          <div class="tm">
+            <span class="bd2 ${pc}">${PRIORITY_LABEL[pc]||'🟡 中'}</span>
+            ${t.due?`<span class="bd2 ${ov?'ov':'du'}">📅${fmtDt(t.due)}${ov?' ⚠':''}</span>`:''}
+            ${t.reminder?`<span class="bd2 rm">⏰${fmtDt(t.reminder)}</span>`:''}
+            ${(t.tags||[]).map(g=>`<span class="bd2 tg">#${esc(g)}</span>`).join('')}
+            <span class="tst">${t.status==='done'&&t.completed_at?'完成 '+t.completed_at:t.created_at}</span>
           </div>
         </div>
-        <div class="todo-actions">
-          <button class="btn btn-ghost btn-sm" onclick="openEdit(${t.id})">编辑</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteTodo(${t.id})">删除</button>
-        </div>
+        <div class="ta"><button class="b bg bs" onclick="openEdit(${t.id})">编辑</button><button class="b bd bs" onclick="deleteTodo(${t.id})">删除</button></div>
       </div>`;
     }).join('');
   }
   updateStats();
-}
-
-function formatDateTime(dt) {
-  if (!dt) return '';
-  // "2026/09/24 18:00" -> "9/24 18:00"
-  const parts = dt.replace('T', ' ').split(' ');
-  const datePart = parts[0];
-  const timePart = parts[1] || '';
-  // 去掉秒
-  const shortTime = timePart.replace(/:\d{2}$/, '');
-  // 简化日期
-  const dateParts = datePart.split(/[\/\-]/);
-  if (dateParts.length === 3) {
-    const m = parseInt(dateParts[1]);
-    const d = parseInt(dateParts[2]);
-    return `${m}/${d} ${shortTime}`;
-  }
-  return `${datePart} ${shortTime}`;
 }
 
 function updateStats() {
@@ -658,36 +510,32 @@ function updateStats() {
   document.getElementById('statPending').textContent = pending;
   document.getElementById('statDone').textContent = done;
   document.getElementById('statOverdue').textContent = overdue;
-  document.getElementById('statRate').textContent = rate + '%';
-  document.getElementById('progressFill').style.width = rate + '%';
+  document.getElementById('statRate').textContent = rate+'%';
+  document.getElementById('progressFill').style.width = rate+'%';
 }
 
-// ─── 操作 ──────────────────────────────────────────────────
+// ─── 操作 ────────────────────────────────────────────────
 function addTodo() {
   const text = document.getElementById('addText').value.trim();
   if (!text) return;
   const priority = document.getElementById('addPriority').value;
-  const dueRaw = document.getElementById('addDue').value || null;
-  const due = dueRaw ? dueRaw.replace('T', ' ') : null;
-  const reminderRaw = document.getElementById('addReminder').value || null;
-  const reminder = reminderRaw ? reminderRaw.replace('T', ' ') : null;
+  const dueRaw = document.getElementById('addDue').value||null;
+  const due = dueRaw ? dueRaw.replace('T',' ') : null;
+  const reminderRaw = document.getElementById('addReminder').value||null;
+  const reminder = reminderRaw ? reminderRaw.replace('T',' ') : null;
   const tagsStr = document.getElementById('addTags').value.trim();
   const tags = tagsStr ? tagsStr.split(/[,，]/).map(t=>t.trim()).filter(Boolean) : [];
   const todos = loadTodos();
-  todos.push({
-    id: nextId(todos),
-    text, priority, status:'pending',
-    created_at: new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
-    completed_at: null, due, reminder, tags, reminded: false
-  });
+  todos.push({id:nextId(todos),text,priority,status:'pending',
+    created_at:new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
+    completed_at:null,due,reminder,tags,reminded:false});
   saveTodos(todos);
-  document.getElementById('addText').value = '';
-  document.getElementById('addDue').value = '';
-  document.getElementById('addReminder').value = '';
-  document.getElementById('addTags').value = '';
-  document.getElementById('addPriority').value = 'medium';
-  render();
-  showToast('✅ 已添加');
+  document.getElementById('addText').value='';
+  document.getElementById('addDue').value='';
+  document.getElementById('addReminder').value='';
+  document.getElementById('addTags').value='';
+  document.getElementById('addPriority').value='medium';
+  render(); showToast('✅ 已添加');
   requestNotificationPermission();
 }
 
@@ -696,127 +544,94 @@ function toggleTodo(id) {
   const t = todos.find(t=>t.id===id);
   if (!t) return;
   t.status = t.status==='done'?'pending':'done';
-  t.completed_at = t.status==='done' ? new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : null;
-  saveTodos(todos);
-  render();
+  t.completed_at = t.status==='done'?new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):null;
+  saveTodos(todos); render();
 }
 
 function deleteTodo(id) {
-  if (!confirm('确定删除此待办？')) return;
-  const todos = loadTodos().filter(t=>t.id!==id);
-  saveTodos(todos);
-  render();
-  showToast('🗑 已删除');
+  if (!confirm('确定删除？')) return;
+  saveTodos(loadTodos().filter(t=>t.id!==id)); render(); showToast('🗑 已删除');
 }
 
 function clearDone() {
   const todos = loadTodos();
-  const doneCount = todos.filter(t=>t.status==='done').length;
-  if (!doneCount) { showToast('没有已完成的待办'); return; }
-  if (!confirm(`确定清除 ${doneCount} 条已完成的待办？`)) return;
-  saveTodos(todos.filter(t=>t.status!=='done'));
-  render();
-  showToast('🧹 已清除');
+  const n = todos.filter(t=>t.status==='done').length;
+  if (!n) { showToast('没有已完成的待办'); return; }
+  if (!confirm(`确定清除 ${n} 条？`)) return;
+  saveTodos(todos.filter(t=>t.status!=='done')); render(); showToast('🧹 已清除');
 }
 
 function openEdit(id) {
   editingId = id;
-  const todos = loadTodos();
-  const t = todos.find(t=>t.id===id);
+  const t = loadTodos().find(t=>t.id===id);
   if (!t) return;
   document.getElementById('editText').value = t.text;
-  document.getElementById('editPriority').value = t.priority || 'medium';
-  document.getElementById('editDue').value = (t.due || '').replace(' ', 'T');
-  document.getElementById('editReminder').value = (t.reminder || '').replace(' ', 'T');
+  document.getElementById('editPriority').value = t.priority||'medium';
+  document.getElementById('editDue').value = (t.due||'').replace(' ','T');
+  document.getElementById('editReminder').value = (t.reminder||'').replace(' ','T');
   document.getElementById('editTags').value = (t.tags||[]).join(',');
-  document.getElementById('editModal').classList.add('active');
+  document.getElementById('editModal').classList.add('on');
 }
-
-function closeEdit() {
-  document.getElementById('editModal').classList.remove('active');
-  editingId = null;
-}
+function closeEdit() { document.getElementById('editModal').classList.remove('on'); editingId=null; }
 
 function saveEdit() {
   if (!editingId) return;
   const text = document.getElementById('editText').value.trim();
   if (!text) return;
   const priority = document.getElementById('editPriority').value;
-  const dueRaw = document.getElementById('editDue').value || null;
-  const due = dueRaw ? dueRaw.replace('T', ' ') : null;
-  const reminderRaw = document.getElementById('editReminder').value || null;
-  const reminder = reminderRaw ? reminderRaw.replace('T', ' ') : null;
+  const dueRaw = document.getElementById('editDue').value||null;
+  const due = dueRaw?dueRaw.replace('T',' '):null;
+  const reminderRaw = document.getElementById('editReminder').value||null;
+  const reminder = reminderRaw?reminderRaw.replace('T',' '):null;
   const tagsStr = document.getElementById('editTags').value.trim();
-  const tags = tagsStr ? tagsStr.split(/[,，]/).map(t=>t.trim()).filter(Boolean) : [];
+  const tags = tagsStr?tagsStr.split(/[,，]/).map(t=>t.trim()).filter(Boolean):[];
   const todos = loadTodos();
   const t = todos.find(t=>t.id===editingId);
-  if (t) { t.text=text; t.priority=priority; t.due=due; t.reminder=reminder; t.tags=tags; if(reminder) t.reminded=false; }
-  saveTodos(todos);
-  closeEdit();
-  render();
-  showToast('✏️ 已更新');
+  if (t) { t.text=text;t.priority=priority;t.due=due;t.reminder=reminder;t.tags=tags;if(reminder)t.reminded=false; }
+  saveTodos(todos); closeEdit(); render(); showToast('✏️ 已更新');
 }
 
-// ─── 导入导出 ──────────────────────────────────────────────
+// ─── 导入导出 ────────────────────────────────────────────
 function exportData() {
   const todos = loadTodos();
-  const blob = new Blob([JSON.stringify(todos,null,2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify(todos,null,2)],{type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `待办事项_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  showToast('📤 已导出');
+  a.click(); URL.revokeObjectURL(a.href); showToast('📤 已导出');
 }
 
 function importData(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = function(ev) {
     try {
       const data = JSON.parse(ev.target.result);
       if (!Array.isArray(data)) throw new Error();
       const todos = loadTodos();
-      const maxId = todos.length ? Math.max(...todos.map(t=>t.id)) : 0;
-      data.forEach((t,i) => {
-        todos.push({...t, id: maxId + i + 1});
-      });
-      saveTodos(todos);
-      render();
-      showToast(`📥 已导入 ${data.length} 条`);
-    } catch(err) {
-      showToast('❌ 导入失败：文件格式错误');
-    }
+      const maxId = todos.length?Math.max(...todos.map(t=>t.id)):0;
+      data.forEach((t,i)=>todos.push({...t,id:maxId+i+1}));
+      saveTodos(todos); render(); showToast(`📥 已导入 ${data.length} 条`);
+    } catch(err) { showToast('❌ 导入失败'); }
   };
-  reader.readAsText(file);
-  e.target.value = '';
+  reader.readAsText(file); e.target.value='';
 }
 
-// ─── 同步码 ────────────────────────────────────────────────
+// ─── 同步码 ──────────────────────────────────────────────
 function showSyncCode() {
   const todos = loadTodos();
-  const json = JSON.stringify(todos);
-  const code = btoa(unescape(encodeURIComponent(json)));
-  document.getElementById('syncExport').value = code;
+  document.getElementById('syncExport').value = utf8ToBase64(JSON.stringify(todos));
   document.getElementById('syncImport').value = '';
-  document.getElementById('syncModal').classList.add('active');
+  document.getElementById('syncModal').classList.add('on');
 }
-
-function closeSync() {
-  document.getElementById('syncModal').classList.remove('active');
-}
+function closeSync() { document.getElementById('syncModal').classList.remove('on'); }
 
 function copySyncCode() {
   const code = document.getElementById('syncExport').value;
   if (!code) return;
-  navigator.clipboard.writeText(code).then(() => {
-    showToast('✅ 同步码已复制');
-  }).catch(() => {
-    const el = document.getElementById('syncExport');
-    el.select();
-    document.execCommand('copy');
-    showToast('✅ 同步码已复制');
+  navigator.clipboard.writeText(code).then(()=>showToast('✅ 已复制')).catch(()=>{
+    document.getElementById('syncExport').select();
+    document.execCommand('copy'); showToast('✅ 已复制');
   });
 }
 
@@ -824,69 +639,38 @@ function importSyncCode(mode) {
   const code = document.getElementById('syncImport').value.trim();
   if (!code) { showToast('❌ 请粘贴同步码'); return; }
   try {
-    const json = decodeURIComponent(escape(atob(code)));
-    const data = JSON.parse(json);
+    const jsonStr = base64ToUtf8(code);
+    const data = JSON.parse(jsonStr);
     if (!Array.isArray(data)) throw new Error();
-    if (mode === 'replace') {
-      saveTodos(data);
-      showToast(`📥 已替换，共 ${data.length} 条`);
-    } else {
+    if (mode==='replace') { saveTodos(data); showToast(`📥 已替换 ${data.length} 条`); }
+    else {
       const todos = loadTodos();
-      const existingKeys = new Set(todos.map(t => t.text + '|' + t.priority + '|' + (t.due||'')));
+      const keys = new Set(todos.map(t=>t.text+'|'+t.priority+'|'+(t.due||'')));
       let added = 0;
-      const maxId = todos.length ? Math.max(...todos.map(t=>t.id)) : 0;
-      data.forEach((t, i) => {
-        const key = t.text + '|' + t.priority + '|' + (t.due||'');
-        if (!existingKeys.has(key)) {
-          todos.push({...t, id: maxId + i + 1});
-          existingKeys.add(key);
-          added++;
-        }
-      });
-      saveTodos(todos);
-      showToast(`📥 已合并，新增 ${added} 条`);
+      const maxId = todos.length?Math.max(...todos.map(t=>t.id)):0;
+      data.forEach((t,i)=>{const k=t.text+'|'+t.priority+'|'+(t.due||'');if(!keys.has(k)){todos.push({...t,id:maxId+i+1});keys.add(k);added++;}});
+      saveTodos(todos); showToast(`📥 新增 ${added} 条`);
     }
-    render();
-    closeSync();
-  } catch(err) {
-    showToast('❌ 同步码格式错误');
-  }
+    render(); closeSync();
+  } catch(err) { showToast('❌ 同步码格式错误'); }
 }
 
-// ─── 工具 ──────────────────────────────────────────────────
-function esc(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
+// ─── 工具 ────────────────────────────────────────────────
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  t.textContent = msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2000);
 }
 
-document.getElementById('editModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeEdit();
-});
-document.getElementById('syncModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeSync();
-});
-document.getElementById('cloudModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeCloudSetting();
-});
+document.getElementById('editModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeEdit(); });
+document.getElementById('syncModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeSync(); });
+document.getElementById('cloudModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeCloudSetting(); });
 
-// 初始加载
-render();
-startAutoSync();
-startReminderCheck();
-
-// ─── 提醒通知系统 ──────────────────────────────────────────
+// ─── 提醒通知 ────────────────────────────────────────────
 function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
+  if ('Notification' in window && Notification.permission==='default') Notification.requestPermission();
 }
 
 function startReminderCheck() {
@@ -895,31 +679,27 @@ function startReminderCheck() {
 }
 
 function checkReminders() {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!('Notification' in window) || Notification.permission!=='granted') return;
   const todos = loadTodos();
   const now = new Date();
   let changed = false;
   todos.forEach(t => {
-    if (t.status !== 'pending' || !t.reminder || t.reminded) return;
-    const reminderTime = new Date(t.reminder.replace(' ', 'T'));
-    if (isNaN(reminderTime.getTime())) return;
-    const diff = now - reminderTime;
-    if (diff >= 0 && diff < 5 * 60 * 1000) {
-      t.reminded = true;
-      changed = true;
-      const dueInfo = t.due ? `，截止：${t.due}` : '';
-      new Notification('⏰ 待办提醒', {
-        body: `${t.text}${dueInfo}`,
-        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📋</text></svg>',
-        tag: `todo-reminder-${t.id}`,
-      });
+    if (t.status!=='pending'||!t.reminder||t.reminded) return;
+    const rt = new Date(t.reminder.replace(' ','T'));
+    if (isNaN(rt.getTime())) return;
+    const diff = now - rt;
+    if (diff>=0 && diff<5*60*1000) {
+      t.reminded = true; changed = true;
+      new Notification('⏰ 待办提醒', {body: t.text + (t.due?`，截止：${t.due}`:''), tag:`todo-${t.id}`});
     }
   });
-  if (changed) {
-    saveTodos(todos);
-    render();
-  }
+  if (changed) { saveTodos(todos); render(); }
 }
+
+// ─── 初始化 ──────────────────────────────────────────────
+render();
+startAutoSync();
+startReminderCheck();
 </script>
 </body>
 </html>
