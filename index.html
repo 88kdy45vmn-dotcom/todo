@@ -138,6 +138,7 @@ header p{color:#888;font-size:13px;margin-top:4px}
   <header>
     <h1>📋 待办事项</h1>
     <p id="dateDisplay"></p>
+    <p id="syncStatus" style="font-size:11px;color:#999;margin-top:2px"></p>
   </header>
 
   <div class="stats-bar">
@@ -187,6 +188,7 @@ header p{color:#888;font-size:13px;margin-top:4px}
     <button class="btn" onclick="document.getElementById('importFile').click()">📥 导入文件</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
     <button class="btn" onclick="showSyncCode()">🔄 同步码</button>
+    <button class="btn" onclick="showCloudSetting()">☁️ 云同步</button>
   </div>
 </div>
 
@@ -239,8 +241,255 @@ header p{color:#888;font-size:13px;margin-top:4px}
   </div>
 </div>
 
+<!-- 云同步设置模态框 -->
+<div class="modal-overlay" id="cloudModal">
+  <div class="modal">
+    <h3>☁️ 云同步设置</h3>
+    <p style="font-size:13px;color:#888;margin-bottom:12px">通过 GitHub API 实现多设备自动同步，设置一次即可</p>
+    <div class="field">
+      <label>GitHub 仓库</label>
+      <input type="text" id="cloudRepo" placeholder="例如: 88kdy45vmn-dotcom/todo">
+      <p style="font-size:11px;color:#aaa;margin-top:4px">你的 GitHub 用户名/仓库名</p>
+    </div>
+    <div class="field">
+      <label>Personal Access Token</label>
+      <input type="password" id="cloudToken" placeholder="ghp_xxxxxxxxxxxx">
+      <p style="font-size:11px;color:#aaa;margin-top:4px">需要 repo 权限 · <a href="https://github.com/settings/tokens/new" target="_blank" style="color:#6c5ce7">去创建 →</a></p>
+    </div>
+    <div class="field">
+      <label>分支 (默认 main)</label>
+      <input type="text" id="cloudBranch" placeholder="main" value="main">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveCloudSetting()">保存并测试</button>
+      <button class="btn btn-danger" style="flex:1" onclick="clearCloudSetting()">清除</button>
+    </div>
+    <div id="cloudTestResult" style="margin-top:8px;font-size:12px;text-align:center"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeCloudSetting()">关闭</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ─── 数据层（localStorage）─────────────────────────────────
+// ─── 云同步（GitHub API）──────────────────────────────────
+const SYNC_INTERVAL = 30;
+const CLOUD_KEY_REPO = 'cloud_repo';
+const CLOUD_KEY_TOKEN = 'cloud_token';
+const CLOUD_KEY_BRANCH = 'cloud_branch';
+const CLOUD_KEY_SHA = 'cloud_sha';
+const CLOUD_KEY_SYNCED = 'cloud_last_sync';
+const CLOUD_DATA_PATH = 'data.json';
+
+let cloudRepo = localStorage.getItem(CLOUD_KEY_REPO) || '';
+let cloudToken = localStorage.getItem(CLOUD_KEY_TOKEN) || '';
+let cloudBranch = localStorage.getItem(CLOUD_KEY_BRANCH) || 'main';
+let cloudSha = localStorage.getItem(CLOUD_KEY_SHA) || '';
+let cloudOnline = false;
+let syncTimer = null;
+let syncing = false;
+
+// GitHub API 请求
+async function githubApi(method, body) {
+  const url = `https://api.github.com/repos/${cloudRepo}/contents/${CLOUD_DATA_PATH}`;
+  const headers = {
+    'Authorization': `token ${cloudToken}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+  };
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  const suffix = method === 'GET' ? `?ref=${cloudBranch}` : '';
+  const resp = await fetch(url + suffix, opts);
+  return resp;
+}
+
+// 从云端拉取
+async function cloudPull() {
+  try {
+    const resp = await githubApi('GET', null);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    cloudSha = data.sha;
+    localStorage.setItem(CLOUD_KEY_SHA, cloudSha);
+    const content = atob(data.content.replace(/\n/g, ''));
+    return JSON.parse(content);
+  } catch(e) { return null; }
+}
+
+// 推送到云端
+async function cloudPush(todos) {
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(todos))));
+    const body = {
+      message: `sync ${new Date().toISOString().slice(0,16)}`,
+      content, branch: cloudBranch,
+    };
+    if (cloudSha) body.sha = cloudSha;
+    let resp = await githubApi('PUT', body);
+    // SHA 冲突时先拉取最新再重试
+    if (resp.status === 409 && cloudSha) {
+      const pullResp = await githubApi('GET', null);
+      if (pullResp.ok) {
+        const pd = await pullResp.json();
+        cloudSha = pd.sha;
+        localStorage.setItem(CLOUD_KEY_SHA, cloudSha);
+        body.sha = cloudSha;
+        resp = await githubApi('PUT', body);
+      }
+    }
+    if (!resp.ok) return false;
+    const result = await resp.json();
+    cloudSha = result.content.sha;
+    localStorage.setItem(CLOUD_KEY_SHA, cloudSha);
+    return true;
+  } catch(e) { return false; }
+}
+
+// 智能合并
+function mergeTodos(local, remote) {
+  const map = {};
+  local.forEach(t => { map[t.id] = {...t}; });
+  remote.forEach(t => {
+    if (!map[t.id]) {
+      map[t.id] = {...t};
+    } else {
+      const ex = map[t.id];
+      if (t.status === 'done' && ex.status !== 'done') {
+        map[t.id] = {...t};
+      } else if (t.completed_at && !ex.completed_at) {
+        map[t.id] = {...t};
+      }
+    }
+  });
+  return Object.values(map).sort((a,b) => a.id - b.id);
+}
+
+// 自动同步主逻辑
+async function autoSync() {
+  if (!cloudRepo || !cloudToken) {
+    if (cloudOnline) { cloudOnline = false; updateSyncStatus(); }
+    return;
+  }
+  if (syncing) return;
+  syncing = true;
+  try {
+    const localTodos = loadTodos();
+    const remoteData = await cloudPull();
+    if (remoteData === null) {
+      if (!cloudSha) {
+        const ok = await cloudPush(localTodos);
+        cloudOnline = ok;
+        if (ok) localStorage.setItem(CLOUD_KEY_SYNCED, new Date().toISOString());
+      } else {
+        cloudOnline = false;
+      }
+      updateSyncStatus();
+      return;
+    }
+    cloudOnline = true;
+    const merged = mergeTodos(localTodos, remoteData);
+    const localStr = JSON.stringify(localTodos.sort((a,b)=>a.id-b.id));
+    const mergedStr = JSON.stringify(merged.sort((a,b)=>a.id-b.id));
+    if (localStr !== mergedStr) {
+      saveTodos(merged);
+      render();
+    }
+    await cloudPush(merged);
+    localStorage.setItem(CLOUD_KEY_SYNCED, new Date().toISOString());
+    updateSyncStatus();
+  } catch(e) {
+    cloudOnline = false;
+    updateSyncStatus();
+  } finally {
+    syncing = false;
+  }
+}
+
+// 同步状态显示
+function updateSyncStatus() {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  const lastSync = localStorage.getItem(CLOUD_KEY_SYNCED);
+  if (cloudOnline) {
+    el.textContent = '🟢 云端已连接 · 自动同步中';
+    el.style.color = '#00b894';
+  } else if (cloudRepo && cloudToken) {
+    el.textContent = '🔴 云端离线 · 数据保存在本地';
+    el.style.color = '#e17055';
+  } else {
+    el.textContent = '⚫ 纯本地 · 点击「☁️ 云同步」开启多设备同步';
+    el.style.color = '#999';
+  }
+  if (lastSync && cloudOnline) {
+    const t = new Date(lastSync);
+    el.textContent += ` · 上次同步 ${t.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`;
+  }
+}
+
+// 云同步设置 UI
+function showCloudSetting() {
+  document.getElementById('cloudRepo').value = cloudRepo;
+  document.getElementById('cloudToken').value = cloudToken;
+  document.getElementById('cloudBranch').value = cloudBranch;
+  document.getElementById('cloudTestResult').textContent = '';
+  document.getElementById('cloudModal').classList.add('active');
+}
+
+function closeCloudSetting() {
+  document.getElementById('cloudModal').classList.remove('active');
+}
+
+function saveCloudSetting() {
+  const repo = document.getElementById('cloudRepo').value.trim();
+  const token = document.getElementById('cloudToken').value.trim();
+  const branch = document.getElementById('cloudBranch').value.trim() || 'main';
+  if (!repo || !token) { showToast('❌ 请填写仓库和 Token'); return; }
+  cloudRepo = repo; cloudToken = token; cloudBranch = branch;
+  cloudSha = '';
+  localStorage.setItem(CLOUD_KEY_REPO, repo);
+  localStorage.setItem(CLOUD_KEY_TOKEN, token);
+  localStorage.setItem(CLOUD_KEY_BRANCH, branch);
+  localStorage.removeItem(CLOUD_KEY_SHA);
+  document.getElementById('cloudTestResult').textContent = '⏳ 正在测试连接...';
+  document.getElementById('cloudTestResult').style.color = '#6c5ce7';
+  autoSync().then(() => {
+    const el = document.getElementById('cloudTestResult');
+    if (cloudOnline) {
+      el.textContent = '✅ 连接成功！自动同步已开启';
+      el.style.color = '#00b894';
+    } else {
+      el.textContent = '❌ 连接失败，请检查仓库和 Token';
+      el.style.color = '#d63031';
+    }
+  });
+}
+
+function clearCloudSetting() {
+  cloudRepo = ''; cloudToken = ''; cloudBranch = 'main'; cloudSha = '';
+  localStorage.removeItem(CLOUD_KEY_REPO);
+  localStorage.removeItem(CLOUD_KEY_TOKEN);
+  localStorage.removeItem(CLOUD_KEY_BRANCH);
+  localStorage.removeItem(CLOUD_KEY_SHA);
+  document.getElementById('cloudRepo').value = '';
+  document.getElementById('cloudToken').value = '';
+  document.getElementById('cloudBranch').value = 'main';
+  document.getElementById('cloudTestResult').textContent = '';
+  cloudOnline = false;
+  updateSyncStatus();
+  showToast('✅ 已清除云同步设置');
+}
+
+// 启动自动同步
+function startAutoSync() {
+  updateSyncStatus();
+  if (cloudRepo && cloudToken) autoSync();
+  syncTimer = setInterval(() => {
+    if (cloudRepo && cloudToken) autoSync();
+  }, SYNC_INTERVAL * 1000);
+}
+
+// ┄── 数据层（localStorage）─────────────────────────────────
 const STORAGE_KEY = 'todo_app_data';
 const PRIORITY_MAP = {'高':'high','中':'medium','低':'low','high':'high','medium':'medium','low':'low'};
 const PRIORITY_ORDER = {high:0,medium:1,low:2};
@@ -528,9 +777,13 @@ document.getElementById('editModal').addEventListener('click', e => {
 document.getElementById('syncModal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeSync();
 });
+document.getElementById('cloudModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeCloudSetting();
+});
 
 // 初始加载
 render();
+startAutoSync();
 </script>
 </body>
 </html>
