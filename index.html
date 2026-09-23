@@ -379,13 +379,22 @@ async function cloudPull() {
     cloudSha = data.sha;
     localStorage.setItem(CLOUD_KEY_SHA, cloudSha);
     const content = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
-    return JSON.parse(content);
+    // 兼容双重编码：如果 decodeURIComponent(escape(...)) 结果仍含乱码，用 TextDecoder 重试
+    try {
+      const parsed = JSON.parse(content);
+      // 检测是否有乱码（Latin-1 范围内的连续高位字符）
+      const hasMojibake = parsed.some(t => /[\xc0-\xff]/.test(t.text));
+      if (!hasMojibake) return parsed;
+    } catch(e) {}
+    // 双重编码回退：直接用 TextDecoder 解码原始字节
+    const rawBytes = Uint8Array.from(atob(data.content.replace(/\n/g, '')), c => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(rawBytes));
   } catch(e) { return null; }
 }
 
 async function cloudPush(todos) {
   try {
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(todos))));
+    const content = btoa(new TextEncoder().encode(JSON.stringify(todos)).reduce((s,b) => s + String.fromCharCode(b), ''));
     const body = {
       message: `sync ${new Date().toISOString().slice(0,16)}`,
       content, branch: cloudBranch,
