@@ -59,7 +59,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 
 /* 待办列表 */
 .tl{padding:0 12px 80px;display:flex;flex-direction:column;gap:6px}
-.ti{background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);display:flex;align-items:flex-start;gap:8px;border-left:3px solid transparent;transition:all .15s}
+.ti{background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);display:flex;align-items:flex-start;gap:8px;border-left:3px solid transparent;transition:all .15s;flex-wrap:wrap}
 .ti:active{background:#fafbff}
 .ti.h{border-left-color:#e53e3e}.ti.m{border-left-color:#ed8936}.ti.l{border-left-color:#48bb78}
 .ti.done{opacity:.5}.ti.done .tt{text-decoration:line-through;color:var(--txt2)}
@@ -127,10 +127,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
   .add .lb{display:none}
   .tb{padding:6px 10px}
   .tb .si{flex-basis:100%;order:-1}
-  .ti{padding:10px;gap:6px}
+  .ti{padding:10px;gap:6px;flex-wrap:wrap}
   .tt{font-size:14px}
   .tm{gap:3px}
-  .ta{width:100%;justify-content:flex-end;margin-top:4px}
+  .ta{flex-basis:100%;justify-content:flex-end;margin-top:4px}
   .ta .b{padding:4px 8px;font-size:11px}
 }
 </style>
