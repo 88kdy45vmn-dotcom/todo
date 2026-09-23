@@ -237,7 +237,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 
 <script>
 // ─── 版本号（强制刷新缓存）──────────────────────────────────
-const APP_VERSION = '2026-09-23-v3';
+const APP_VERSION = '2026-09-23-v4';
 
 // ─── UTF-8 安全编码/解码 ──────────────────────────────────
 function utf8ToBase64(str) {
@@ -248,10 +248,43 @@ function utf8ToBase64(str) {
 }
 
 function base64ToUtf8(b64) {
-  const binary = atob(b64.replace(/\n/g, ''));
+  const binary = atob(b64.replace(/[\s\r\n]/g, ''));
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return new TextDecoder().decode(bytes);
+}
+
+// 修复乱码：UTF-8 字节被错误当作 Latin-1 解码时，重新还原为正确中文
+function fixMojibake(str) {
+  if (!str || typeof str !== 'string') return str;
+  // 检测是否含乱码字符（U+0080-U+00FF 范围内的连续字符 = UTF-8 多字节序列被误读）
+  let hasBad = false;
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    if (c >= 0x80 && c <= 0xFF) { hasBad = true; break; }
+  }
+  if (!hasBad) return str;
+  try {
+    // 将每个字符的 code point 当作字节值，重新用 UTF-8 解码
+    const bytes = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
+    const fixed = new TextDecoder().decode(bytes);
+    // 验证：如果解码后含替换字符 U+FFFD，说明不是有效 UTF-8，返回原值
+    if (fixed.indexOf('\uFFFD') >= 0) return str;
+    return fixed;
+  } catch(e) { return str; }
+}
+
+// 修复整条待办的 text 和 tags
+function fixTodoMojibake(todo) {
+  const t = {...todo};
+  t.text = fixMojibake(t.text);
+  if (t.tags && Array.isArray(t.tags)) {
+    t.tags = t.tags.map(tag => fixMojibake(tag));
+  }
+  if (t.due) t.due = fixMojibake(t.due);
+  if (t.reminder) t.reminder = fixMojibake(t.reminder);
+  return t;
 }
 
 // ─── 云同步（GitHub API）──────────────────────────────────
@@ -292,7 +325,9 @@ async function cloudPull() {
     cloudSha = data.sha;
     localStorage.setItem(CLOUD_KEY_SHA, cloudSha);
     const jsonStr = base64ToUtf8(data.content);
-    return JSON.parse(jsonStr);
+    const todos = JSON.parse(jsonStr);
+    // 自动修复乱码：手机端旧代码推送的数据可能含乱码
+    return todos.map(fixTodoMojibake);
   } catch(e) { return null; }
 }
 
@@ -354,10 +389,14 @@ async function autoSync() {
       updateSyncStatus(); return;
     }
     cloudOnline = true;
-    const merged = mergeTodos(localTodos, remoteData);
-    const localStr = JSON.stringify(localTodos.sort((a,b)=>a.id-b.id));
+    // 修复本地 localStorage 中的乱码
+    const fixedLocal = localTodos.map(fixTodoMojibake);
+    const localFixed = JSON.stringify(fixedLocal.sort((a,b)=>a.id-b.id)) !== JSON.stringify(localTodos.sort((a,b)=>a.id-b.id));
+    if (localFixed) { saveTodos(fixedLocal); }
+    const merged = mergeTodos(localFixed ? fixedLocal : localTodos, remoteData);
+    const localStr = JSON.stringify((localFixed ? fixedLocal : localTodos).sort((a,b)=>a.id-b.id));
     const mergedStr = JSON.stringify(merged.sort((a,b)=>a.id-b.id));
-    if (localStr !== mergedStr) { saveTodos(merged); render(); }
+    if (localStr !== mergedStr || localFixed) { saveTodos(merged); render(); }
     await cloudPush(merged);
     localStorage.setItem(CLOUD_KEY_SYNCED, new Date().toISOString());
     updateSyncStatus();
@@ -697,6 +736,18 @@ function checkReminders() {
 }
 
 // ─── 初始化 ──────────────────────────────────────────────
+// 启动时修复 localStorage 中的乱码数据
+(function fixLocalData() {
+  const todos = loadTodos();
+  let fixed = false;
+  const repaired = todos.map(t => {
+    const ft = fixTodoMojibake(t);
+    if (ft.text !== t.text || JSON.stringify(ft.tags) !== JSON.stringify(t.tags)) fixed = true;
+    return ft;
+  });
+  if (fixed) { saveTodos(repaired); console.log('已修复本地乱码数据'); }
+})();
+
 render();
 startAutoSync();
 startReminderCheck();
