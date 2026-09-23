@@ -72,6 +72,7 @@ header p{color:#888;font-size:13px;margin-top:4px}
 .badge-low{background:#e8f5e9;color:#00b894}
 .badge-due{background:#ede7f6;color:#6c5ce7}
 .badge-overdue{background:#d63031;color:#fff}
+.badge-reminder{background:#fff9c4;color:#f57f17}
 .badge-tag{background:#e3f2fd;color:#0984e3}
 .todo-time{font-size:10px;color:#bbb}
 
@@ -158,8 +159,12 @@ header p{color:#888;font-size:13px;margin-top:4px}
         <option value="high">🔴 高优先级</option>
         <option value="low">🟢 低优先级</option>
       </select>
-      <input type="date" id="addDue" title="截止日期">
+      <input type="datetime-local" id="addDue" title="截止时间" style="flex:1;min-width:160px">
       <input type="text" id="addTags" class="tags-input" placeholder="标签(逗号分隔)">
+    </div>
+    <div class="form-row">
+      <input type="datetime-local" id="addReminder" title="提醒时间" style="flex:1;min-width:160px">
+      <span style="font-size:12px;color:#888;line-height:38px">⏰ 提醒</span>
     </div>
     <div class="form-row" style="justify-content:flex-end">
       <button class="btn btn-primary" onclick="addTodo()">添加</button>
@@ -204,7 +209,8 @@ header p{color:#888;font-size:13px;margin-top:4px}
         <option value="low">🟢 低</option>
       </select>
     </div>
-    <div class="field"><label>截止日期</label><input type="date" id="editDue"></div>
+    <div class="field"><label>截止时间</label><input type="datetime-local" id="editDue"></div>
+    <div class="field"><label>提醒时间</label><input type="datetime-local" id="editReminder"></div>
     <div class="field"><label>标签 (逗号分隔)</label><input type="text" id="editTags"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeEdit()">取消</button>
@@ -534,9 +540,12 @@ function render() {
     list.innerHTML = '<div class="empty-state"><div class="icon">🎉</div><div>暂无待办事项</div></div>';
   } else {
     const today = new Date().toISOString().slice(0,10);
+    const now = new Date();
     list.innerHTML = todos.map(t => {
-      const isOverdue = t.status==='pending' && t.due && t.due < today;
+      const isOverdue = t.status==='pending' && t.due && t.due.slice(0,10) < today;
       const pc = t.priority || 'medium';
+      const dueDisplay = t.due ? t.due.replace(/:\d{2}$/, '') : '';
+      const reminderDisplay = t.reminder ? t.reminder.replace(/:\d{2}$/, '') : '';
       return `
       <div class="todo-item ${t.status==='done'?'done':''}" data-id="${t.id}">
         <div class="checkbox ${t.status==='done'?'checked':''}" onclick="toggleTodo(${t.id})"></div>
@@ -544,7 +553,8 @@ function render() {
           <div class="todo-text">${esc(t.text)}</div>
           <div class="todo-meta">
             <span class="badge badge-${pc}">${PRIORITY_LABEL[pc]||'🟡 中'}</span>
-            ${t.due?`<span class="badge ${isOverdue?'badge-overdue':'badge-due'}">📅 ${t.due}${isOverdue?' 逾期':''}</span>`:''}
+            ${t.due?`<span class="badge ${isOverdue?'badge-overdue':'badge-due'}">📅 ${dueDisplay}${isOverdue?' 逾期':''}</span>`:''}
+            ${t.reminder?`<span class="badge badge-reminder">⏰ ${reminderDisplay}</span>`:''}
             ${(t.tags||[]).map(tag=>`<span class="badge badge-tag">#${esc(tag)}</span>`).join('')}
             <span class="todo-time">${t.status==='done'&&t.completed_at?'完成于 '+t.completed_at:t.created_at}</span>
           </div>
@@ -577,7 +587,10 @@ function addTodo() {
   const text = document.getElementById('addText').value.trim();
   if (!text) return;
   const priority = document.getElementById('addPriority').value;
-  const due = document.getElementById('addDue').value || null;
+  const dueRaw = document.getElementById('addDue').value || null;
+  const due = dueRaw ? dueRaw.replace('T', ' ') : null;
+  const reminderRaw = document.getElementById('addReminder').value || null;
+  const reminder = reminderRaw ? reminderRaw.replace('T', ' ') : null;
   const tagsStr = document.getElementById('addTags').value.trim();
   const tags = tagsStr ? tagsStr.split(/[,，]/).map(t=>t.trim()).filter(Boolean) : [];
   const todos = loadTodos();
@@ -585,15 +598,17 @@ function addTodo() {
     id: nextId(todos),
     text, priority, status:'pending',
     created_at: new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
-    completed_at: null, due, tags
+    completed_at: null, due, reminder, tags, reminded: false
   });
   saveTodos(todos);
   document.getElementById('addText').value = '';
   document.getElementById('addDue').value = '';
+  document.getElementById('addReminder').value = '';
   document.getElementById('addTags').value = '';
   document.getElementById('addPriority').value = 'medium';
   render();
   showToast('✅ 已添加');
+  requestNotificationPermission();
 }
 
 function toggleTodo(id) {
@@ -631,7 +646,8 @@ function openEdit(id) {
   if (!t) return;
   document.getElementById('editText').value = t.text;
   document.getElementById('editPriority').value = t.priority || 'medium';
-  document.getElementById('editDue').value = t.due || '';
+  document.getElementById('editDue').value = (t.due || '').replace(' ', 'T');
+  document.getElementById('editReminder').value = (t.reminder || '').replace(' ', 'T');
   document.getElementById('editTags').value = (t.tags||[]).join(',');
   document.getElementById('editModal').classList.add('active');
 }
@@ -646,12 +662,15 @@ function saveEdit() {
   const text = document.getElementById('editText').value.trim();
   if (!text) return;
   const priority = document.getElementById('editPriority').value;
-  const due = document.getElementById('editDue').value || null;
+  const dueRaw = document.getElementById('editDue').value || null;
+  const due = dueRaw ? dueRaw.replace('T', ' ') : null;
+  const reminderRaw = document.getElementById('editReminder').value || null;
+  const reminder = reminderRaw ? reminderRaw.replace('T', ' ') : null;
   const tagsStr = document.getElementById('editTags').value.trim();
   const tags = tagsStr ? tagsStr.split(/[,，]/).map(t=>t.trim()).filter(Boolean) : [];
   const todos = loadTodos();
   const t = todos.find(t=>t.id===editingId);
-  if (t) { t.text=text; t.priority=priority; t.due=due; t.tags=tags; }
+  if (t) { t.text=text; t.priority=priority; t.due=due; t.reminder=reminder; t.tags=tags; if(reminder) t.reminded=false; }
   saveTodos(todos);
   closeEdit();
   render();
@@ -784,6 +803,48 @@ document.getElementById('cloudModal').addEventListener('click', e => {
 // 初始加载
 render();
 startAutoSync();
+startReminderCheck();
+
+// ─── 提醒通知系统 ──────────────────────────────────────────
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function startReminderCheck() {
+  // 每 30 秒检查一次提醒
+  setInterval(checkReminders, 30000);
+  checkReminders(); // 立即检查一次
+}
+
+function checkReminders() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const todos = loadTodos();
+  const now = new Date();
+  let changed = false;
+  todos.forEach(t => {
+    if (t.status !== 'pending' || !t.reminder || t.reminded) return;
+    const reminderTime = new Date(t.reminder.replace(' ', 'T'));
+    if (isNaN(reminderTime.getTime())) return;
+    // 提醒时间已到（当前时间 >= 提醒时间，且在 5 分钟内）
+    const diff = now - reminderTime;
+    if (diff >= 0 && diff < 5 * 60 * 1000) {
+      t.reminded = true;
+      changed = true;
+      const dueInfo = t.due ? `，截止：${t.due}` : '';
+      new Notification('⏰ 待办提醒', {
+        body: `${t.text}${dueInfo}`,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📋</text></svg>',
+        tag: `todo-reminder-${t.id}`,
+      });
+    }
+  });
+  if (changed) {
+    saveTodos(todos);
+    render();
+  }
+}
 </script>
 </body>
 </html>
